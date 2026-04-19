@@ -31,11 +31,11 @@ show_guides = false;
 explode = 18;
 
 // =========================================================
-// GLOBAL DIMENSIONS
+// GLOBAL DIMENSIONS / TOLERANCES
 // =========================================================
 case_w = 170;
 case_h = 170;
-case_d = 65;
+case_d = 60;
 case_inset = 20;
 corner_r = 14;
 
@@ -49,6 +49,11 @@ open_back_margin = 8;      // rear opening leaves a frame
 // =========================================================
 // MODULE LAYOUT
 // =========================================================
+eps = 0.1;                    // anti-z-fighting clearance
+through_extra = 0.2;          // extra depth for "cut through"
+thin_guide_t = 0.2;
+fit_test_t = 0.8;
+
 
 // Digit display
 digit_extra_tol = 0.2;
@@ -57,6 +62,7 @@ digit_h = 23 + tol*2 + digit_extra_tol;
 digit_x = 0;
 digit_y = 56;
 digit_ledge = 1.2;
+digit_ledge_cut_t = digit_ledge + through_extra;
 acrylic_t = 1.5;
 
 // Dial
@@ -69,18 +75,39 @@ dial_front_relief = 0.0;   // ring already holds well; keep cutout honest
 // StickC / secondary admin display
 stick_w = 48 + tol*2;
 stick_h = 24 + tol*2;
-stick_x = -22;
+stick_x = -20;
 stick_y = -56;
+
+// Stick retainer defaults
+stick_ret_plate_pad = 2.5;
+stick_ret_plate_t = 2;
+stick_ret_post = 6;
+stick_ret_post_h = 12 + tol;
+stick_ret_inset_w = tol*6;
+stick_ret_inset_h = tol;
+stick_ret_center_open = 10;
+stick_ret_cutout_delta = 0.4;
+stick_ret_plate_cutout_delta = 3.5;
 
 // Echo / ATOM Voice
 echo_w = 24 + tol*2;
 echo_h = 24 + tol*2;
-echo_x = 34;
+echo_x = 32;
 echo_y = -56;
+
+// Echo retainer defaults
+echo_ret_plate_pad = 3;
+echo_ret_plate_t = 2;
+echo_ret_post = 4;
+echo_ret_post_h = 15 + tol;
+echo_ret_inset = 0.35;
+echo_ret_center_open = 10;
+echo_ret_cutout_delta = 0.4;
+echo_ret_plate_cutout_delta = 3.25;
 
 // PIR sensor aperture (discreet)
 pir_w = 8;
-pir_h = 4;
+pir_h = 3.5;
 pir_x = 40;
 pir_y = 56;
 
@@ -105,12 +132,24 @@ ear_cap_t = 3;
 ear_cap_offset_x = 58;
 ear_cap_top_overlap = 6;   // amount that sits on top of case
 
-// Cages
-cage_t = 2.2;
-cage_nose = 2.0;
-cage_clear = 0.35;
-cage_depth_stick = 8;
-cage_depth_echo = 8;
+
+// =========================================================
+// SHARED MODELING CONSTANTS
+// =========================================================
+retainer_mount_z = front_t + through_extra;
+exploded_stick_dx = 18;
+exploded_echo_dx = 18;
+
+
+
+
+
+// Ear cap shape tuning
+ear_cap_scale_primary_y = 1.05;
+ear_cap_body_y_shift = 0.10;
+ear_cap_scale_secondary_x = 0.62;
+ear_cap_scale_secondary_y = 1.08;
+ear_cap_open_y_shift = 0.50;
 
 // =========================================================
 // BASIC HELPERS
@@ -169,12 +208,12 @@ module front_plate_only() {
     }
 
     // acrylic ledge behind digit window
-    translate([digit_x, digit_y, -1.2])
+    translate([digit_x, digit_y, -digit_ledge])
     difference() {
-        linear_extrude(1.2)
+        linear_extrude(digit_ledge)
             centered_slot_2d(digit_w + digit_ledge*2, digit_h + digit_ledge*2, 3);
-        translate([0,0,-0.01])
-        linear_extrude(1.22)
+        translate([0,0,-eps/10])
+        linear_extrude(digit_ledge_cut_t)
             centered_slot_2d(digit_w, digit_h, 2.5);
     }
 }
@@ -189,12 +228,12 @@ module main_shell() {
             rounded_box(case_w, case_h, case_d, corner_r);
 
             // digit ledge behind front
-            translate([digit_x, digit_y, front_t - 1.2])
+            translate([digit_x, digit_y, front_t - digit_ledge])
             difference() {
-                linear_extrude(1.2)
+                linear_extrude(digit_ledge)
                     centered_slot_2d(digit_w + digit_ledge*2, digit_h + digit_ledge*2, 3);
-                translate([0,0,-0.01])
-                linear_extrude(1.22)
+                translate([0,0,-eps/10])
+                linear_extrude(digit_ledge_cut_t)
                     centered_slot_2d(digit_w, digit_h, 2.5);
             }
         }
@@ -209,8 +248,8 @@ module main_shell() {
             );
 
         // front cutouts
-        translate([0,0,-0.1])
-            linear_extrude(front_t + 0.2)
+        translate([0,0,-eps])
+            linear_extrude(front_t + through_extra)
                 front_cutouts_2d();
 
         // open rear window (big service opening)
@@ -223,13 +262,13 @@ module main_shell() {
                 );
 
         // right-side slider opening: only the finger tab
-        translate([case_w/2 - wall + 0.1, slider_y, case_d/2 + slider_z])
+        translate([case_w/2 - wall + eps, slider_y, case_d/2 + slider_z])
             rotate([0,90,0])
-            linear_extrude(wall + 0.4)
+            linear_extrude(wall + through_extra*2)
                 centered_slot_2d(slider_slot_len, slider_slot_w, slider_slot_w/2);
 
         // subtle recess / shadow frame around slider opening
-        translate([case_w/2 - wall - slider_inset + 0.1, slider_y, case_d/2 + slider_z])
+        translate([case_w/2 - wall - slider_inset + eps, slider_y, case_d/2 + slider_z])
             rotate([0,90,0])
             linear_extrude(slider_inset + 0.3)
                 centered_slot_2d(
@@ -240,9 +279,9 @@ module main_shell() {
 
         // ear wire passthroughs in top left/right walls
         for (sx=[-1,1]) {
-            translate([sx*ear_wire_x, ear_wire_y, case_d - wall + 0.1])
+            translate([sx*ear_wire_x, ear_wire_y, case_d - wall + eps])
                 rotate([90,0,0])
-                linear_extrude(wall + 0.4)
+                linear_extrude(wall + through_extra*2)
                     centered_slot_2d(ear_wire_w, ear_wire_h, ear_wire_h/2);
         }
     }
@@ -261,11 +300,11 @@ module retention_noses(cw, ch, nose=2, t=2) {
 }
 
 module digit_support_pads(
-        pad = 3.5,
-        pad_h = 9,
+        pad = 2,
+        pad_h = 11 + tol * 2,
         spacing_x = 32,
         spacing_y = 28,
-        r = 1.15    ){
+        r = 0.75    ){
 
     for (sx = [-1, 1], sy = [-1, 1]) {
         translate([
@@ -278,143 +317,187 @@ module digit_support_pads(
 }
 module stick_module_cutout_2d() {
 
-    centered_slot_2d(stick_w + 0.4, stick_h + 0.4, 3);
+    centered_slot_2d(stick_w + stick_ret_cutout_delta, stick_h + stick_ret_cutout_delta, 3);
 }
 
 module stick_module_plate_cutout_2d() {
-    centered_slot_2d(stick_w - 1.8, stick_h - 1.8, 3);
+    centered_slot_2d(stick_w - stick_ret_plate_cutout_delta, stick_h - stick_ret_plate_cutout_delta, 3);
 }
-
-module stick_retainer_light(
-    plate_w = stick_w + 4,
-    plate_h = stick_h + 4,
-    plate_t = 2,
-    post = 5,
-    post_h = 11.4,
-    inset = 0.3,
-    center_open = 10
+module stick_retainer_shell(
+    plate_w = stick_w + stick_ret_plate_pad,
+    plate_h = stick_h + stick_ret_plate_pad,
+    plate_t = stick_ret_plate_t,
+    post_h = stick_ret_post_h,
+    inner_w = stick_w ,
+    inner_h = stick_h ,
+    outer_r = 3.5,
+    inner_r = 3,
+    relief_w = 6,
+    relief_h = 4
 ) {
     difference() {
         union() {
             // Grundplatte
             linear_extrude(plate_t)
-                centered_slot_2d(plate_w, plate_h, 3);
+                centered_slot_2d(plate_w, plate_h, outer_r);
 
-            // 4 Eckpfeiler / Stops
-            difference() {
-                union() {
-                    for (sx = [-1, 1], sy = [-1, 1]) {
-                        translate([
-                            sx * (plate_w/2 - inset - post/2),
-                            sy * (plate_h/2 - inset - post/2),
-                            plate_t
-                        ])
-                        
-                            rounded_post(post, post, post_h, 3);
-                    }
-                }
-
-                // Cutout nur durch die Posts / obere Geometrie
-                translate([0,0,plate_t - 0.1])
-                    linear_extrude(post_h + 0.2)
-                        stick_module_cutout_2d();
-
-                // zusätzlicher mittiger Öffnungsbereich, falls gewünscht
-                translate([0, 0, plate_t - 0.1])
-                    linear_extrude(post_h + 0.2)
-                        centered_slot_2d(
-                            max(plate_w - center_open, 8),
-                            max(plate_h - center_open, 8),
-                            2
-                        );
-            }
+            // aufgedickter Aufbau darüber
+            translate([0,0,plate_t])
+                linear_extrude(post_h)
+                    centered_slot_2d(plate_w, plate_h, outer_r);
         }
 
+        // zentrales Modulfenster
+        translate([0,0,plate_t - 0.1])
+            linear_extrude(post_h + 0.2)
+                centered_slot_2d(inner_w, inner_h, inner_r);
+
+        // zusätzliche Relief-Cutouts, damit nicht wieder ein Vollrahmen bleibt
+        translate([0,0,plate_t - 0.1])
+            linear_extrude(post_h + 0.2)
+                union() {
+                    // horizontaler Relief-Schnitt
+                    centered_slot_2d(max(inner_w - relief_w, 6), plate_h + 2, 2);
+
+                    // vertikaler Relief-Schnitt
+                    centered_slot_2d(plate_w + 2, max(inner_h - relief_h, 6), 2);
+                }
         // kleinerer Cutout NUR durch die Grundplatte
-        translate([0,0,-0.1])
-            linear_extrude(plate_t + 0.2)
+        translate([0,0,-eps])
+            linear_extrude(plate_t + through_extra)
                 stick_module_plate_cutout_2d();
     }
 }
+
 module echo_module_cutout_2d() {
-    centered_slot_2d(echo_w + 0.4, echo_h + 0.4, 3);
+    centered_slot_2d(echo_w + echo_ret_cutout_delta, echo_h + echo_ret_cutout_delta, 3);
 }
 module echo_module_plate_cutout_2d() {
-    centered_slot_2d(echo_w - 1.8, echo_h - 1.8, 3);
+    centered_slot_2d(echo_w - echo_ret_plate_cutout_delta, echo_h - echo_ret_plate_cutout_delta, 3);
 }
-module echo_retainer_light(
-    plate_w = echo_w + 4,
-    plate_h = echo_h + 4,
-    plate_t = 2,
-    post = 4,
-    post_h = 14.4,
-    inset = 0.35,
-    center_open = 10
+module echo_retainer_shell(
+    plate_w = echo_w + echo_ret_plate_pad,
+    plate_h = echo_h + echo_ret_plate_pad,
+    plate_t = echo_ret_plate_t,
+    post = echo_ret_post,
+    post_h = echo_ret_post_h,
+    inner_w = echo_w ,
+    inner_h = echo_h ,
+    outer_r = 3.5,
+    inner_r = 3,
+    relief_w = 5,
+    relief_h = 5
 ) {
 
     difference() {
         union() {
-        // Grundplatte
-        linear_extrude(plate_t)
-            centered_slot_2d(plate_w, plate_h, 3);
+            // Grundplatte
+            linear_extrude(plate_t)
+                centered_slot_2d(plate_w, plate_h, outer_r);
 
-        // 4 Eckpfeiler / Stops
-        difference() {
-            union() {
-                for (sx = [-1, 1], sy = [-1, 1]) {
-                    translate([
-                        sx * (plate_w/2 - inset - post/2),
-                        sy * (plate_h/2 - inset - post/2),
-                        plate_t
-                    ])
-                        rounded_post(post, post, post_h, 3);
+            // aufgedickter Aufbau darüber
+            translate([0,0,plate_t])
+                linear_extrude(post_h)
+                    centered_slot_2d(plate_w, plate_h, outer_r);
+        }
+
+        // zentrales Modulfenster
+        translate([0,0,plate_t - 0.1])
+            linear_extrude(post_h + 0.2)
+                centered_slot_2d(inner_w, inner_h, inner_r);
+
+        // zusätzliche Relief-Cutouts, damit nicht wieder ein Vollrahmen bleibt
+        translate([0,0,plate_t - 0.1])
+            linear_extrude(post_h + 0.2)
+                union() {
+                    // horizontaler Relief-Schnitt
+                    centered_slot_2d(max(inner_w - relief_w, 6), plate_h + 2, 2);
+
+                    // vertikaler Relief-Schnitt
+                    centered_slot_2d(plate_w + 2, max(inner_h - relief_h, 6), 2);
                 }
-            }
-
-        translate([0,0,-0.1])
-            linear_extrude(plate_t + post_h + 0.2)
-                echo_module_cutout_2d();
-        // mittig offener Bereich, damit nichts unnötig zugebaut wird
-        translate([0, 0, -0.1])
-            linear_extrude(plate_t + post_h + 0.2)
-                centered_slot_2d(
-                    max(plate_w - center_open, 8),
-                    max(plate_h - center_open, 8),
-                    2
-                );
-        }
-        }
-        translate([0,0,-0.1])
-            linear_extrude(plate_t + 0.2)
-                echo_module_plate_cutout_2d();        
+        // kleinerer Cutout NUR durch die Grundplatte
+        translate([0,0,-eps])
+            linear_extrude(plate_t + through_extra)
+                echo_module_plate_cutout_2d();
     }
 }
 // EAR CAPS / BEZELS
 // Separate parts, same filament, glue on top of shell.
 // Simple shells with open underside.
 // =========================================================
-module ear_cap_body() {
-    difference() {
-        linear_extrude(ear_cap_t)
-            intersection() {
-                scale([1, 1.05]) circle(d=ear_cap_w);
-                translate([0, -ear_cap_h*0.10])
-                    scale([0.62, 1.08]) circle(d=ear_cap_h);
-            }
-
-        // open underside mouth / clip void
-        translate([0,-ear_cap_h*0.50,-0.1])
-            linear_extrude(ear_cap_t + 0.2)
-                square([ear_cap_w, ear_cap_h], center=true);
+module tiny_spacer(x=2.5, y=2.5, z=0.3, r=0.6) {
+    linear_extrude(z)
+        rounded_rect_2d(x, y, min(r, min(x,y)/2 - 0.01));
+}
+module ear_outer_2d(w = 30, h = 42, tip_scale = 0.62, body_scale_y = 1.08) {
+    intersection() {
+        scale([1, 1.05]) circle(d = w);
+        translate([0, -h * 0.10])
+            scale([tip_scale, body_scale_y]) circle(d = h);
     }
 }
+module ear_cap(
+    pcb_w = 24,
+    pcb_h = 35,
+    clear = 0.3,
+    wall_t = 1.5,
+    front_t = 2,
+    depth = 10,
+    tip_latch_h = 1.2
+) {
+    difference() {
+        // Außenform
+        linear_extrude(depth)
+            ear_outer_2d(30, 42);
 
-module ear_cap_left()  { ear_cap_body(); }
-module ear_cap_right() { mirror([1,0,0]) ear_cap_body(); }
+        // Innenraum, hinten offen
+        translate([0, 0, front_t])
+            linear_extrude(depth - front_t + 0.1)
+                centered_slot_2d(
+                    pcb_w + clear*2,
+                    pcb_h + clear*2,
+                    2
+                );
+    }
 
-module ear_caps_pair() {
-    translate([-ear_cap_offset_x, case_h/2 + ear_cap_top_overlap, 0]) ear_cap_left();
-    translate([ ear_cap_offset_x, case_h/2 + ear_cap_top_overlap, 0]) ear_cap_right();
+    // 3 Front-Abstandshalter
+    // oben mittig
+    translate([0, pcb_h/2 - 6, front_t])
+        tiny_spacer(3, 2.5, 0.3, 0.6);
+
+    // unten links
+    translate([-(pcb_w/2 - 5), -(pcb_h/2 - 6), front_t])
+        tiny_spacer(2.5, 2.5, 0.3, 0.6);
+
+    // unten rechts
+    translate([ (pcb_w/2 - 5), -(pcb_h/2 - 6), front_t])
+        tiny_spacer(2.5, 2.5, 0.3, 0.6);
+
+    // minimale hintere Lasche oben gegen Umfallen
+    translate([0, pcb_h/2 + clear/2, depth - 2])
+        cube([6, 1.2, tip_latch_h], center=true);
+}
+
+
+module ear_cap_left() {
+    ear_cap();
+}
+
+module ear_cap_right() {
+    mirror([1, 0, 0]) ear_cap();
+}
+
+
+module ear_caps_pair(
+    offset_x = 58,
+    top_overlap = 20
+) {
+    translate([-offset_x, case_h/2 + top_overlap, 0])
+        ear_cap_left();
+
+    translate([ offset_x, case_h/2 + top_overlap, 0])
+        ear_cap_right();
 }
 
 // =========================================================
@@ -422,14 +505,14 @@ module ear_caps_pair() {
 // =========================================================
 module fit_test_front() {
     color("black")
-    linear_extrude(0.8)
+    linear_extrude(fit_test_t)
     difference() {
         rounded_rect_2d(case_w, case_h, corner_r);
         front_cutouts_2d();
     }
 
     if (show_guides) {
-        color([1,0,0,0.4]) linear_extrude(0.2) {
+        color([1,0,0,0.4]) linear_extrude(thin_guide_t) {
             translate([0,0]) guide_cross(12,0.7);
             translate([digit_x, digit_y]) guide_cross(10,0.6);
             translate([dial_x, dial_y]) guide_cross(10,0.6);
@@ -445,16 +528,16 @@ module fit_test_front() {
 // =========================================================
 module assembled_view() {
     color("gainsboro") main_shell();
-    color("silver") translate([stick_x, stick_y, front_t + 0.2]) stick_retainer_light();
-    color("silver") translate([echo_x, echo_y, front_t + 0.2]) echo_retainer_light();
+    color("silver") translate([stick_x, stick_y, retainer_mount_z]) stick_retainer_shell();
+    color("silver") translate([echo_x, echo_y, retainer_mount_z]) echo_retainer_shell();
     digit_support_pads();    
     color("gainsboro") ear_caps_pair();
 }
 
 module exploded_view() {
     color("gainsboro") main_shell();
-    color("silver") translate([stick_x - 18, stick_y, case_d + explode]) stick_retainer_light();
-    color("silver") translate([echo_x + 18, echo_y, case_d + explode]) echo_retainer_light();
+    color("silver") translate([stick_x - exploded_stick_dx, stick_y, case_d + explode]) stick_retainer_shell();
+    color("silver") translate([echo_x + exploded_echo_dx, echo_y, case_d + explode]) echo_retainer_shell();
     color("gainsboro") translate([0,0,case_d + explode*1.6]) ear_caps_pair();
 }
 
@@ -466,11 +549,11 @@ if (view_mode == "shell") main_shell();
 if (view_mode == "retainer_echo")
 { 
     
-    echo_retainer_light();
+    echo_retainer_shell();
 }
 if (view_mode == "retainer_stick")
 { 
-    stick_retainer_light();
+    stick_retainer_shell();
     
 }
 if (view_mode == "ear_caps") ear_caps_pair();
